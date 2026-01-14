@@ -24,7 +24,7 @@ from datetime import datetime
 # Input files
 # Make sure these files are in the same directory as the script,
 # or provide the full path to them.
-EXCEL_FILE_PATH = 'excel_sheets/ARO_Fastners_7.17.25.xlsx'
+EXCEL_FILE_PATH = 'excel_sheets/amazon_1.13.26.xlsx'
 PDF_TEMPLATE_PATH = 'form/UPDATED AME Purchase Request Form.pdf'
 
 # Output directory
@@ -35,7 +35,7 @@ OUTPUT_DIR = 'filled_requisitions'
 # This information will be the same on every generated form.
 REQUESTED_BY = 'Benjamin Bemis'
 PHONE = '740-915-1405'
-DELIVER_TO = 'Benjamin Bemis/White Field Research Laboratory/142'
+DELIVER_TO = 'Benjamin Bemis/Hessert Research Laboratory/B036'
 PI_NAME = 'Thomas Juliano'
 
 # --- IMPORTANT: PDF Field Mapping ---
