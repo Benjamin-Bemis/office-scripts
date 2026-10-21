@@ -9,13 +9,16 @@
 # Before running, you need to install the necessary Python libraries.
 # Open your terminal or command prompt and run the following command:
 #
-# pip install pandas openpyxl fillpdf
+# pip install pandas openpyxl odfpy fillpdf
 #
+# (openpyxl reads .xlsx/.xlsm, odfpy reads .ods, xlrd is only needed for old .xls)
+
+import os
+import sys
+from datetime import datetime
 
 import pandas as pd
 from fillpdf import fillpdfs
-import os
-from datetime import datetime
 
 # --- 2. CONFIGURATION ---
 #
@@ -24,7 +27,7 @@ from datetime import datetime
 # Input files
 # Make sure these files are in the same directory as the script,
 # or provide the full path to them.
-EXCEL_FILE_PATH = 'excel_sheets/amazon_1.13.26.xlsx'
+EXCEL_FILE_PATH = 'excel_sheets/AeroDAQ.ods'
 PDF_TEMPLATE_PATH = 'form/UPDATED AME Purchase Request Form.pdf'
 
 # Output directory
@@ -35,7 +38,7 @@ OUTPUT_DIR = 'filled_requisitions'
 # This information will be the same on every generated form.
 REQUESTED_BY = 'Benjamin Bemis'
 PHONE = '740-915-1405'
-DELIVER_TO = 'Benjamin Bemis/Hessert Research Laboratory/B036'
+DELIVER_TO = 'Benjamin Bemis/Hessert Research Laboratory at White Field/135'
 PI_NAME = 'Thomas Juliano'
 
 # --- IMPORTANT: PDF Field Mapping ---
@@ -67,7 +70,29 @@ PDF_FIELD_MAP = {
     'Chemical Bio HazardRow': 'Bio Hazard',
 }
 
-# --- 3. HELPER FUNCTION TO FIND PDF FIELD NAMES ---
+# --- 3. HELPER FUNCTIONS ---
+
+# Spreadsheet reader engine for each supported file extension.
+SPREADSHEET_ENGINES = {
+    '.xlsx': 'openpyxl',
+    '.xlsm': 'openpyxl',
+    '.ods':  'odf',
+    '.xls':  'xlrd',
+}
+
+def read_spreadsheet(path):
+    """
+    Reads an Excel (.xlsx/.xlsm/.xls) or LibreOffice (.ods) file into a DataFrame.
+    """
+    ext = os.path.splitext(path)[1].lower()
+    if ext not in SPREADSHEET_ENGINES:
+        raise ValueError(f"Unsupported file type '{ext}'. Use one of: {', '.join(SPREADSHEET_ENGINES)}")
+    df = pd.read_excel(path, engine=SPREADSHEET_ENGINES[ext])
+    # Drop fully blank rows (common at the bottom of sheets) and stray header whitespace.
+    df.columns = [str(c).strip() for c in df.columns]
+    return df.dropna(how='all')
+
+
 
 def get_pdf_field_names(pdf_path):
     """
@@ -108,7 +133,7 @@ def main():
 
     # --- Read and Process Data ---
     try:
-        df = pd.read_excel(EXCEL_FILE_PATH, engine='openpyxl')
+        df = read_spreadsheet(EXCEL_FILE_PATH)
         required_cols = ['Vendor', 'Quantity', 'Link/Part #', 'Description', 'Unit Price']
         if not all(col in df.columns for col in required_cols):
             print(f"Error: The Excel file must contain the following columns: {required_cols}")
@@ -189,6 +214,15 @@ if __name__ == '__main__':
     # STEP 2: Update the PDF_FIELD_MAP and data_dict keys with the correct names.
     # STEP 3: Set this back to False to run the main form-filling logic.
     RUN_FIELD_FINDER = False
+
+    # Optionally pass the spreadsheet on the command line:
+    #   python fill_form.py excel_sheets/some_order.xlsx
+    if len(sys.argv) > 1:
+        EXCEL_FILE_PATH = os.path.abspath(sys.argv[1])
+
+    # Resolve the relative paths above against the script's folder, so it works
+    # no matter which directory it is launched from.
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     if RUN_FIELD_FINDER:
         get_pdf_field_names(PDF_TEMPLATE_PATH)
